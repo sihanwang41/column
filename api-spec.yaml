@@ -1,0 +1,151 @@
+consumes:
+- application/json
+info:
+  description: Column - Ansible as a service
+  title: Column
+  version: 0.0.1
+  contact:
+    website: https://github.com/vmware/column
+  license:
+    name: BSD-2
+    url: https://github.com/vmware/column/blob/master/LICENSE
+produces:
+- application/json
+swagger: "2.0"
+schemes:
+- http
+basePath: /v1
+paths:
+  /runs:
+    post:
+      summary: Create a new run to execute ansible playbook
+      operationId: createRun
+      parameters:
+      - in: body
+        name: body
+        description: Run object that will describe execution context
+        required: true
+        schema:
+          $ref: "#/definitions/RunPayload"
+      responses:
+        200:
+          description: Run started successfully
+          schema:
+            $ref: "#/definitions/Run"
+    get:
+      summary: Get a list of all ansible playbook runs
+      operationId: getRuns
+      responses:
+        200:
+          description: Returns a list of Runs successfully
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Run"
+  /runs/{runId}:
+    get:
+      summary: Returns a single run given its ID
+      operationID: getRunByID
+      parameters:
+      - name: runId
+        in: path
+        description: ID of run to return
+        required: true
+        type: string
+        format: uuid
+      responses:
+        200:
+          description: Successful retrieval of Run
+          schema:
+            $ref: "#/definitions/Run"
+        404:
+          description: Run not found
+          schema:
+            $ref: "#/definitions/Error"
+  /credentials:
+    get:
+      summary: Retrieve credential by credential file path
+      operationID: getCredential
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: "#/definitions/CredentialPayload"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/Credential"
+        404:
+          description: Credential file not found
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      summary: Update credential by credential file path
+      operationID: updateCredential
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: "#/definitions/CredentialPayload"
+      responses:
+        204:
+          description: OK
+
+definitions:
+  RunPayload:
+    type: object
+    properties:
+      playbook_path:
+        type: string
+      inventory:
+        type: string
+      options:
+        type: object
+        $ref: '#/definitions/Options'
+
+  CredentialPayload:
+    type: object
+    properties:
+      value:
+        type: string
+
+  Run:
+    allOf:
+    - $ref: '#/definitions/RunPayload'
+    - type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum:
+            - running
+            - completed
+            - error
+  Credential:
+    type: object
+    properties:
+      value:
+        type: string
+
+  Options:
+    type: object
+    properties:
+      become_user:
+        type: string
+      private_key_file:
+        type: string
+      tags:
+        type: array
+      skip_tags:
+        type: array
+      susbset:
+        type: string
+      connection:
+        type: string
+      become_method:
+        type: string
