@@ -17,7 +17,7 @@ from column.api.model import run_model
 
 LOG = logging.getLogger(__name__)
 
-run_post_schema = {
+RUN_POST_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
@@ -63,17 +63,21 @@ class Run(flask_restful.Resource):
         """Get run by id"""
         run = self.backend_store.get_run(id)
         if not run:
-            return abort(404, message="Run {} doesn't exist".format(id))
+            return abort(http_client.NOT_FOUND,
+                         message="Run {} doesn't exist".format(id))
         return run_model.format_response(run)
 
     def delete(self, id):
         """Delete run by id"""
         run = self.backend_store.get_run(id)
         if not run:
-            return abort(404, message="Run {} doesn't exist".format(id))
+            return abort(http_client.NOT_FOUND,
+                         message="Run {} doesn't exist".format(id))
         if not self.manager.delete_run(run):
-            return abort(400, message="Failed to find the task queue "
-                                      "manager of run {}.".format(id))
+            return abort(http_client.BAD_REQUEST,
+                         message="Failed to find the task queue "
+                                 "manager of run {}.".format(id))
+        return '', http_client.NO_CONTENT
 
 
 class RunList(flask_restful.Resource):
@@ -97,11 +101,11 @@ class RunList(flask_restful.Resource):
             response.append(run_model.format_response(run))
         return response
 
-    @utils.validator(run_post_schema, http_client.BAD_REQUEST)
+    @utils.validator(RUN_POST_SCHEMA, http_client.BAD_REQUEST)
     def post(self):
         """Trigger a new run"""
         run_payload = utils.uni_to_str(json.loads(request.get_data()))
         run_payload['id'] = str(uuid.uuid4())
         LOG.info('Triggering new ansible run %s', run_payload['id'])
         run = self.manager.create_run(run_payload)
-        return run_model.format_response(run)
+        return run_model.format_response(run), http_client.CREATED

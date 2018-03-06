@@ -6,6 +6,7 @@ import logging
 
 from flask import request
 import flask_restful
+from flask_restful import abort
 from flask_restful import reqparse
 from six.moves import http_client
 
@@ -15,7 +16,7 @@ from column.api import manager
 
 LOG = logging.getLogger(__name__)
 
-credential_schema = {
+CREDENTIAL_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
@@ -46,9 +47,14 @@ class Credential(flask_restful.Resource):
     def get(self):
         """Get a credential by file path"""
         args = self.get_parser.parse_args()
-        return self.manager.get_credential(args)
+        cred = self.manager.get_credential(args)
+        if cred is None:
+            return abort(http_client.BAD_REQUEST,
+                         message='Unable to decrypt credential value.')
+        else:
+            return cred
 
-    @utils.validator(credential_schema, http_client.BAD_REQUEST)
+    @utils.validator(CREDENTIAL_SCHEMA, http_client.BAD_REQUEST)
     def put(self):
         """Update a credential by file path"""
         cred_payload = utils.uni_to_str(json.loads(request.get_data()))
